@@ -129,6 +129,30 @@ FluidSim/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FluidSim.dir/build.make CMakeFiles/FluidSim.dir/build
 .PHONY : FluidSim/fast
 
+src/fluid.o: src/fluid.cpp.o
+.PHONY : src/fluid.o
+
+# target to build an object file
+src/fluid.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FluidSim.dir/build.make CMakeFiles/FluidSim.dir/src/fluid.cpp.o
+.PHONY : src/fluid.cpp.o
+
+src/fluid.i: src/fluid.cpp.i
+.PHONY : src/fluid.i
+
+# target to preprocess a source file
+src/fluid.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FluidSim.dir/build.make CMakeFiles/FluidSim.dir/src/fluid.cpp.i
+.PHONY : src/fluid.cpp.i
+
+src/fluid.s: src/fluid.cpp.s
+.PHONY : src/fluid.s
+
+# target to generate assembly for a file
+src/fluid.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FluidSim.dir/build.make CMakeFiles/FluidSim.dir/src/fluid.cpp.s
+.PHONY : src/fluid.cpp.s
+
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -152,6 +176,30 @@ src/main.s: src/main.cpp.s
 src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FluidSim.dir/build.make CMakeFiles/FluidSim.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
+
+src/random.o: src/random.cpp.o
+.PHONY : src/random.o
+
+# target to build an object file
+src/random.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FluidSim.dir/build.make CMakeFiles/FluidSim.dir/src/random.cpp.o
+.PHONY : src/random.cpp.o
+
+src/random.i: src/random.cpp.i
+.PHONY : src/random.i
+
+# target to preprocess a source file
+src/random.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FluidSim.dir/build.make CMakeFiles/FluidSim.dir/src/random.cpp.i
+.PHONY : src/random.cpp.i
+
+src/random.s: src/random.cpp.s
+.PHONY : src/random.s
+
+# target to generate assembly for a file
+src/random.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FluidSim.dir/build.make CMakeFiles/FluidSim.dir/src/random.cpp.s
+.PHONY : src/random.cpp.s
 
 src/renderer.o: src/renderer.cpp.o
 .PHONY : src/renderer.o
@@ -186,9 +234,15 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... FluidSim"
+	@echo "... src/fluid.o"
+	@echo "... src/fluid.i"
+	@echo "... src/fluid.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/random.o"
+	@echo "... src/random.i"
+	@echo "... src/random.s"
 	@echo "... src/renderer.o"
 	@echo "... src/renderer.i"
 	@echo "... src/renderer.s"

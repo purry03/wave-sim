@@ -18,6 +18,9 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/main.cpp
         ${CMAKE_SOURCE_DIR}/src/renderer.cpp
+        ${CMAKE_SOURCE_DIR}/src/fluid.cpp
+        ${CMAKE_SOURCE_DIR}/src/random.cpp
+        #        ${CMAKE_SOURCE_DIR}/src/input.cpp
 )
 
 # Create executable

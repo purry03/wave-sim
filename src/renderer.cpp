@@ -1,5 +1,6 @@
-#include "../include/renderer.h"  // Include the header file where the class is declared
-#include <cmath>  // For pow()
+#include "../include/renderer.h"
+#include  "../include/fluid.h"
+#include <cmath>
 #include <iostream>
 
 Renderer::Renderer(const char* title, int height, int width, int fps)
@@ -9,6 +10,7 @@ Renderer::Renderer(const char* title, int height, int width, int fps)
 Renderer::~Renderer()
 {
     SDL_DestroyWindow(m_window);
+    SDL_DestroyRenderer(m_renderer);
     SDL_Quit();
 }
 
@@ -36,6 +38,8 @@ int Renderer::initialize()
         std::cerr << "Could not create window: " << SDL_GetError() << std::endl;
         return 1;
     }
+    m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_SetRenderDrawBlendMode(m_renderer, SDL_BLENDMODE_BLEND);
     m_screenSurface = SDL_GetWindowSurface(m_window);
     m_running = true;
     return 0;
@@ -43,32 +47,11 @@ int Renderer::initialize()
 
 void Renderer::draw() const
 {
-    SDL_UpdateWindowSurface(m_window);
+    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
+    SDL_RenderPresent(m_renderer);
     SDL_Delay(1000 / m_fps);
 }
 
-void Renderer::handle_input()
-{
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
-    {
-        if (event.type == SDL_QUIT) {
-            m_closeRequested = true;
-            m_running = false;
-        }
-        if (event.type == SDL_KEYDOWN)
-        {
-            switch (event.key.keysym.sym)
-            {
-                case SDLK_UP: break;
-                case SDLK_DOWN: break;
-                case SDLK_LEFT: break;
-                case SDLK_RIGHT: break;
-                default: break;
-            }
-        }
-    }
-}
 
 void Renderer::set_pixel(int x, int y, Uint32 pixel) const
 {
@@ -76,6 +59,26 @@ void Renderer::set_pixel(int x, int y, Uint32 pixel) const
         + y * m_screenSurface->pitch
         + x * m_screenSurface->format->BytesPerPixel);
     *target_pixel = pixel;
+}
+
+void Renderer::draw_pixel(const int x, const int y, const int r, const int g, const int b, const int a) const
+{
+    const auto pixel = SDL_MapRGBA(m_screenSurface->format, r, g, b, a*100);
+    auto* target_pixel = static_cast<Uint32*>(m_screenSurface->pixels
+        + y * m_screenSurface->pitch
+        + x * m_screenSurface->format->BytesPerPixel);
+    *target_pixel = pixel;
+}
+
+void Renderer::drawRectangle(int x, int y, int width, int height, SDL_Color color) const {
+    // Set the drawing color
+    SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
+
+    // Create the rectangle
+    SDL_Rect rect = {x, y, width, height};
+
+    // Fill the rectangle with the specified color
+    SDL_RenderFillRect(m_renderer, &rect);
 }
 
 void Renderer::circle(int x, int y, int radius) const

@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/FluidSim.dir/src/main.cpp.o CMakeFiles/FluidSim.dir/src/renderer.cpp.o -o FluidSim  -lSDL2 
+/usr/bin/c++ CMakeFiles/FluidSim.dir/src/main.cpp.o CMakeFiles/FluidSim.dir/src/renderer.cpp.o CMakeFiles/FluidSim.dir/src/fluid.cpp.o CMakeFiles/FluidSim.dir/src/random.cpp.o -o FluidSim  -lSDL2 
