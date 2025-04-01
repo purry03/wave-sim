@@ -122,7 +122,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=FluidSim
+CMAKE_PROJECT_NAME:STATIC=GasSim
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
@@ -197,6 +197,15 @@ FluidSim_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
 FluidSim_SOURCE_DIR:STATIC=/home/perry/fluid
+
+//Value Computed by CMake
+GasSim_BINARY_DIR:STATIC=/home/perry/fluid/build
+
+//Value Computed by CMake
+GasSim_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+GasSim_SOURCE_DIR:STATIC=/home/perry/fluid
 
 //The directory containing a CMake configuration file for SDL2.
 SDL2_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/SDL2

@@ -44,26 +44,26 @@ void handle_input(Renderer* renderer, const Fluid* fluid)
 }
 
 std::vector<double> vectorFromAngle2D(double angle) {
-    return {cos(angle)*0.2, sin(angle)*0.2};
+    return {cos(angle)*6, sin(angle)*6};
 }
 
 
 int main()
 {
-    auto renderer = Renderer("Fluid Sim", SCREEN_HEIGHT, SCREEN_WIDTH, 22);
+    auto renderer = Renderer("Fluid Sim", SCREEN_HEIGHT, SCREEN_WIDTH, 60);
     renderer.initialize();
 
-    auto *fluid = FluidCreate(250,0.2,0, 0.0000001);
+    auto *fluid = FluidCreate(250,0.05,0.000001, 0.00000173);
 
 
     int SCALE = 4;
 
-    int max_density = 50, min_density = 10;
+    int max_density = 125, min_density = 10;
     int range = max_density - min_density + 1;
 
     srand(time(nullptr));  // Seed random generator
 
-    SmoothRandom smoothRand(0.0, 360, 0.000009);  // Slowly change between 0 and 100
+    SmoothRandom smoothRand(0.0, 360, 0.00000005);  // Slowly change between 0 and 100
 
     while(renderer.isLive())
     {

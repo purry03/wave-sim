@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Project name and language
-project(FluidSim CXX)
+project(GasSim CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -24,7 +24,7 @@ set(SOURCES
 )
 
 # Create executable
-add_executable(FluidSim ${SOURCES})
+add_executable(GasSim ${SOURCES})
 
 # Link SDL2
-target_link_libraries(FluidSim SDL2)
+target_link_libraries(GasSim SDL2)

@@ -252,7 +252,7 @@ void FluidRender(const Fluid* fluid, const Renderer* renderer, const int scale)
             if (density != 0)
             {
                 auto [r,g,b] = HSBtoRGB(int(density+50.0)%255,200,density);
-                renderer->drawRectangle(i*scale,j*scale,scale,scale,{int(density+50.0)%255,200,density,density/5});
+                renderer->drawRectangle(i*scale,j*scale,scale,scale,{int(density+50.0)%255,200,density,density/3});
             }
             else
             {
