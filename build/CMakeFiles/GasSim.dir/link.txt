@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/GasSim.dir/src/main.cpp.o CMakeFiles/GasSim.dir/src/renderer.cpp.o CMakeFiles/GasSim.dir/src/fluid.cpp.o CMakeFiles/GasSim.dir/src/random.cpp.o -o GasSim  -lSDL2 
+/usr/bin/c++ CMakeFiles/GasSim.dir/src/main.cpp.o CMakeFiles/GasSim.dir/src/renderer.cpp.o CMakeFiles/GasSim.dir/src/fluid.cpp.o CMakeFiles/GasSim.dir/src/random.cpp.o -o GasSim  -lSDL2 /usr/lib/x86_64-linux-gnu/libpython3.12.so 

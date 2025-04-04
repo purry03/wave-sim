@@ -1,263 +1,242 @@
 #include "../include/fluid.h"
-#include  "../include/renderer.h"
-#include <cstdlib>
+#include "../include/matplotlibcpp.h"
+
 #include <iostream>
-#include <math.h>
 #include <cmath>
-#include <tuple>
+#include <vector>
+#include <thread>
+#include <algorithm>
+#include <functional>
 
-#define IX(x, y) ((x) + (y) * N)
+namespace plt = matplotlibcpp;
 
-
-Fluid* FluidCreate(const int size, const float dt, const float diff, const float visc)
+Fluid::Fluid(const int size,const float dt,const float c,const float s,const int screen_size)
+    : m_size(size), m_dt(dt), m_c(c), m_s(s), m_screen_size(screen_size)
 {
-    auto* fluid = static_cast<Fluid*>(malloc(sizeof(Fluid)));
-    fluid->m_size = size;
-    fluid->m_dt = dt;
-    fluid->m_diff = diff;
-    fluid->m_visc = visc;
-
-    fluid->m_s = static_cast<float*>(calloc(size * size, sizeof(float)));
-    fluid->m_density = static_cast<float*>(calloc(size * size, sizeof(float)));
-
-    fluid->m_Vx = static_cast<float*>(calloc(size * size, sizeof(float)));
-    fluid->m_Vy = static_cast<float*>(calloc(size * size, sizeof(float)));
-
-    fluid->m_Vx0 = static_cast<float*>(calloc(size * size, sizeof(float)));
-    fluid->m_Vy0 = static_cast<float*>(calloc(size * size, sizeof(float)));
-
-    return fluid;
-}
-
-void FluidDelete(Fluid* fluid)
-{
-    free(fluid->m_s);
-    free(fluid->m_density);
-    free(fluid->m_Vx);
-    free(fluid->m_Vy);
-    free(fluid->m_Vx0);
-    free(fluid->m_Vy0);
-    free(fluid);
-}
-
-void FluidAddDensity(const Fluid* fluid, const int x, const int y, const float amount)
-{
-    const int N = fluid->m_size;
-    fluid->m_density[IX(x, y)] += amount;
-}
-
-void FluidAddVelocity(const Fluid* fluid, const int x, const int y, const float amountX, const float amountY)
-{
-    const int N = fluid->m_size;
-    const int index = IX(x, y);
-
-    fluid->m_Vx[index] += amountX;
-    fluid->m_Vy[index] += amountY;
-}
-
-static void set_bnd(const int b, float* x, const int N)
-{
-    for (int i = 1; i < N - 1; i++)
-    {
-        x[IX(i, 0)] = b == 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
-        x[IX(i, N-1)] = b == 2 ? -x[IX(i, N-2)] : x[IX(i, N-2)];
+    // Check simulation stability criteria
+    if (m_dt * m_c >= m_s) {
+        std::cerr << "Simulation stability criterion not met. dt*c >= s" << std::endl;
+        exit(1);
     }
 
-    for (int j = 1; j < N - 1; j++)
-    {
-        x[IX(0, j)] = b == 1 ? -x[IX(1, j)] : x[IX(1, j)];
-        x[IX(N-1, j)] = b == 1 ? -x[IX(N-2, j)] : x[IX(N-2, j)];
-    }
+    // Initialize simulation arrays
+    initializeArrays();
 
+    // Generate sierpinski carpet obstacle pattern
+    const int carpet_size = m_size / 2;
+    constexpr int level = 8; // Using direct value instead of pow(2,3) for clarity
+    generate_sierpinski_carpet(m_size / 2 - carpet_size / 2, m_size / 2 - carpet_size / 2, carpet_size, level);
 
-    x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
-    x[IX(0, N - 1)] = 0.5 * (x[IX(1, N - 1)] + x[IX(0, N - 2)]);
-    x[IX(N - 1, 0)] = 0.5 * (x[IX(N - 2, 0)] + x[IX(N - 1, 1)]);
-    x[IX(N - 1, N - 1)] = 0.5 * (x[IX(N - 2, N - 1)] + x[IX(N - 1, N - 2)]);
+    // Uncomment to start plotting thread
+    // m_plot_thread = std::thread(&Fluid::plot_waves, this);
 }
 
-static void lin_solve(const int b, float* x, const float* x0, const float a, const float c, const int iter, const int N)
-{
-    const float cRecip = 1.0 / c;
-    for (int k = 0; k < iter; k++)
-    {
-        for (int j = 1; j < N - 1; j++)
-        {
-            for (int i = 1; i < N - 1; i++)
-            {
-                x[IX(i, j)] =
-                   (x0[IX(i, j)] +
-                     a *
-                       (x[IX(i + 1, j)] +
-                         x[IX(i - 1, j)] +
-                         x[IX(i, j + 1)] +
-                         x[IX(i, j - 1)])) *
-                   cRecip;
-            }
-        }
-        set_bnd(b, x, N);
+Fluid::~Fluid() {
+    if (m_plot_thread.joinable()) {
+        m_plot_thread.join();
     }
 }
 
-static void diffuse(const int b, float* x, const float* x0, const float diff, const float dt, const int iter,
-                    const int N)
-{
-    float a = dt * diff * (N - 2) * (N - 2);
-    lin_solve(b, x, x0, a, 1 + 6 * a, iter, N);
+void Fluid::initializeArrays() {
+    // Resize arrays
+    m_H.resize(m_size * m_size, 0.0f);
+    m_V.resize(m_size * m_size, 0.0f);
+    m_Wet.resize(m_size * m_size, 1.0f);
 }
 
-static void project(float* velocX, float* velocY, float* p, float* div, const int iter, int N)
-{
-    for (int j = 1; j < N - 1; j++)
-    {
-        for (int i = 1; i < N - 1; i++)
-        {
-            div[IX(i, j)] =
-              (-0.5 *
-                (velocX[IX(i + 1, j)] -
-                  velocX[IX(i - 1, j)] +
-                  velocY[IX(i, j + 1)] -
-                  velocY[IX(i, j - 1)])) /
-              N;
-            p[IX(i, j)] = 0;
-        }
+int Fluid::transform_idx(const int x,const int y) const {
+    // Ensure coordinates wrap around the edges
+    return ((x + m_size) % m_size) + m_size * ((y + m_size) % m_size);
+}
+
+float Fluid::get_height(int x, int y, int x0, int y0) const {
+    if (x < 0 || x >= m_size || y < 0 || y >= m_size) {
+        return 0.0f;  // Return 0 for out-of-bounds
     }
-    set_bnd(0, div, N);
-    set_bnd(0, p, N);
-    lin_solve(0, p, div, 1, 6, iter, N);
+    return m_H[transform_idx(x, y)];
+}
 
-
-    for (int j = 1; j < N - 1; j++)
-    {
-        for (int i = 1; i < N - 1; i++)
-        {
-            velocX[IX(i, j)] -= 0.5 * (p[IX(i + 1, j)] - p[IX(i - 1, j)]) * N;
-            velocY[IX(i, j)] -= 0.5 * (p[IX(i, j + 1)] - p[IX(i, j - 1)]) * N;
-        }
+float Fluid::get_wet(int x, int y, int x0, int y0) const {
+    if (x < 0 || x >= m_size || y < 0 || y >= m_size) {
+        return m_Wet[transform_idx(x0, y0)];
     }
-
-    set_bnd(1, velocX, N);
-    set_bnd(2, velocY, N);
+    return m_Wet[transform_idx(x, y)];
 }
 
-static void advect(const int b, float* d, const float* d0, const float* velocX, const float* velocY, const float dt,
-                   const int N)
-{
-    float i0, i1, j0, j1;
-
-    float dtx = dt * (N - 2);
-    float dty = dt * (N - 2);
-
-    float s0, s1, t0, t1;
-    float tmp1, tmp2, tmp3, x, y;
-
-    float Nfloat = N - 2;
-    float ifloat, jfloat;
-    int i, j;
-
-    for (j = 1, jfloat = 1; j < N - 1; j++, jfloat++)
-    {
-        for (i = 1, ifloat = 1; i < N - 1; i++, ifloat++)
-        {
-            tmp1 = dtx * velocX[IX(i, j)];
-            tmp2 = dty * velocY[IX(i, j)];
-            x = ifloat - tmp1;
-            y = jfloat - tmp2;
-
-            if (x < 0.5f) x = 0.5f;
-            if (x > Nfloat + 0.5f) x = Nfloat + 0.5f;
-            i0 = floorf(x);
-            i1 = i0 + 1.0f;
-            if (y < 0.5f) y = 0.5f;
-            if (y > Nfloat + 0.5f) y = Nfloat + 0.5f;
-            j0 = floorf(y);
-            j1 = j0 + 1.0f;
-
-            s1 = x - i0;
-            s0 = 1.0f - s1;
-            t1 = y - j0;
-            t0 = 1.0f - t1;
-
-
-            int i0i = i0;
-            int i1i = i1;
-            int j0i = j0;
-            int j1i = j1;
-
-
-            d[IX(i, j)] =
-                s0 * (t0 * d0[IX(i0i, j0i)] + t1 * d0[IX(i0i, j1i)]) +
-                s1 * (t0 * d0[IX(i1i, j0i)] + t1 * d0[IX(i1i, j1i)]);
-        }
-    }
-    set_bnd(b, d, N);
+float Fluid::acceleration(int x, int y, int x0, int y0) const {
+    const float height0 = get_height(x0, y0, x0, y0);
+    const float height1 = get_height(x, y, x0, y0);
+    const float wet = get_wet(x, y, x0, y0);
+    return wet * (height1 - height0);
 }
 
-void FluidCubeStep(Fluid* fluid)
-{
-    int N = fluid->m_size;
-    float visc = fluid->m_visc;
-    float diff = fluid->m_diff;
-    float dt = fluid->m_dt;
-    float* Vx = fluid->m_Vx;
-    float* Vy = fluid->m_Vy;
-    float* Vx0 = fluid->m_Vx0;
-    float* Vy0 = fluid->m_Vy0;
-    float* s = fluid->m_s;
-    float* density = fluid->m_density;
+void Fluid::step(const float halflife) {
+    const float damp = pow(0.5, m_dt/halflife);
+    const float c_squared_over_s_squared = pow(m_c, 2) / pow(m_s, 2);
 
-    diffuse(1, Vx0, Vx, visc, dt, 16, N);
-    diffuse(2, Vy0, Vy, visc, dt, 16, N);
+    // Update velocities
+    updateVelocities(damp, c_squared_over_s_squared);
 
-    project(Vx0, Vy0, Vx, Vy, 16, N);
+    // Apply boundary conditions
+    applyBoundaryConditions();
 
-    advect(1, Vx, Vx0, Vx0, Vy0, dt, N);
-    advect(2, Vy, Vy0, Vx0, Vy0, dt, N);
-
-    project(Vx, Vy, Vx0, Vy0, 16, N);
-
-    diffuse(0, s, density, diff, dt, 16, N);
-    advect(0, density, s, Vx, Vy, dt, N);
+    // Update heights
+    updateHeights();
 }
 
-std::tuple<int, int, int> HSBtoRGB(float h, float s, float b) {
-    float r = 0, g = 0, blue = 0;
+void Fluid::updateVelocities(const float damp,const float c_squared_over_s_squared) {
+    for (int x = 0; x < m_size; x++) {
+        for (int y = 0; y < m_size; y++) {
+            if (get_wet(x, y, x, y) > 0.0f) {
+                const float top = acceleration(x, y + 1, x, y);
+                const float bottom = acceleration(x, y - 1, x, y);
+                const float left = acceleration(x - 1, y, x, y);
+                const float right = acceleration(x + 1, y, x, y);
 
-    int i = static_cast<int>(h / 60) % 6;
-    float f = (h / 60) - i;
-    float p = b * (1 - s);
-    float q = b * (1 - f * s);
-    float t = b * (1 - (1 - f) * s);
-
-    switch (i) {
-    case 0: r = b, g = t, blue = p; break;
-    case 1: r = q, g = b, blue = p; break;
-    case 2: r = p, g = b, blue = t; break;
-    case 3: r = p, g = q, blue = b; break;
-    case 4: r = t, g = p, blue = b; break;
-    case 5: r = b, g = p, blue = q; break;
-    }
-
-    return {static_cast<int>(r * 255), static_cast<int>(g * 255), static_cast<int>(blue * 255)};
-}
-
-void FluidRender(const Fluid* fluid, const Renderer* renderer, const int scale)
-{
-    const int N=fluid->m_size;
-    for (int i=0;i<N;i++)
-    {
-        for (int j=0;j<N;j++)
-        {
-            const float density = fluid->m_density[IX(i,j)];
-            if (density != 0)
-            {
-                auto [r,g,b] = HSBtoRGB(int(density+50.0)%255,200,density);
-                renderer->drawRectangle(i*scale,j*scale,scale,scale,{int(density+50.0)%255,200,density,density/3});
-            }
-            else
-            {
-                renderer->drawRectangle(i*scale,j*scale,scale,scale,{0,0,0,255});
+                const float acc = c_squared_over_s_squared * (top + bottom + left + right);
+                const int idx = transform_idx(x, y);
+                m_V[idx] = damp * m_V[idx] + m_dt * acc;
             }
         }
     }
 }
+
+void Fluid::applyBoundaryConditions() {
+    for (int x = 0; x < m_size; x++) {
+        for (int y = 0; y < m_size; y++) {
+            if (x == 0 || x == m_size - 1 || y == 0 || y == m_size - 1) {
+                // Apply zero velocity at boundaries
+                m_V[transform_idx(x, y)] = 0.0f;
+            }
+        }
+    }
+}
+
+void Fluid::updateHeights() {
+    for (int x = 0; x < m_size; x++) {
+        for (int y = 0; y < m_size; y++) {
+            if (get_wet(x, y, x, y) > 0.0f) {
+                const int idx = transform_idx(x, y);
+                m_H[idx] += m_dt * m_V[idx];
+            }
+        }
+    }
+}
+
+void Fluid::generate_sierpinski_carpet(const int x,const int y,const int size,const int level) {
+    if (level == 0 || size < 3) return;
+
+    const int newSize = size / 3;
+
+    // Create the central empty square
+    for (int i = x + newSize; i < x + 2 * newSize; ++i) {
+        for (int j = y + newSize; j < y + 2 * newSize; ++j) {
+            m_Wet[transform_idx(i, j)] = 0.0f;
+        }
+    }
+
+    // Recursively generate all 8 surrounding squares
+    for (int dx = 0; dx < 3; ++dx) {
+        for (int dy = 0; dy < 3; ++dy) {
+            if (dx == 1 && dy == 1) continue;  // Skip the center
+            generate_sierpinski_carpet(x + dx * newSize, y + dy * newSize, newSize, level - 1);
+        }
+    }
+}
+
+void Fluid::add_velocity(int x, int y) {
+    // Convert screen coordinates to simulation coordinates
+    const int scale = m_screen_size / m_size;
+    const int sim_x = x / scale;
+    const int sim_y = y / scale;
+
+    // Add a splash pattern
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            if (sim_x + i >= 0 && sim_x + i < m_size &&
+                sim_y + j >= 0 && sim_y + j < m_size) {
+                const int r = 1 + i*i + j*j;  // Distance from center
+                m_V[transform_idx(sim_x + i, sim_y + j)] = 20000.0f / r;
+            }
+        }
+    }
+
+    std::cout << "Added velocity at: " << sim_x << "," << sim_y << std::endl;
+}
+
+float Fluid::constrain(const float value,const float min,const float max,const float newMin,const float newMax) {
+    const float mapped = newMin + (value - min) * (newMax - newMin) / (max - min);
+    return std::max(newMin, std::min(mapped, newMax));
+}
+
+void Fluid::render(const Renderer* renderer) {
+    const int scale = m_screen_size / m_size;
+
+    for (int x = 0; x < m_size; x++) {
+        for (int y = 0; y < m_size; y++) {
+            const int idx = transform_idx(x, y);
+            const float wet = m_Wet[idx];
+            const float height = m_H[idx];
+
+            const SDL_Color color = calculateColor(wet, height);
+            renderer->drawRectangle(x * scale, y * scale, scale, scale, color);
+        }
+    }
+}
+
+SDL_Color Fluid::calculateColor(const float wet,const float height) {
+    SDL_Color color = {0, 0, 0, 150};
+
+    if (wet == 0.0f) {
+        // Obstacle color
+        color.r = 255;
+        color.g = 255;
+        color.b = 255;
+    } else {
+        // Water color based on height
+        color.r = 45;
+        color.g = 35;
+
+        // Map height to blue intensity
+        const float blue = 128.0f * (height + 1.0f);
+        color.b = std::clamp(blue, 0.0f, 255.0f);
+    }
+
+    return color;
+}
+
+void Fluid::mapHeightToColor(const float height, unsigned char* r, unsigned char* g, unsigned char* b) {
+    // Normalize height for color mapping (between 0 and 1)
+    const float normHeight = (height - 1.0f) / (10.0f - 1.0f);
+
+    // Blue for low heights, red for high heights
+    *r = static_cast<unsigned char>(255.0f * normHeight);                // Red increases with height
+    *g = static_cast<unsigned char>(std::max(0.0f, 255.0f * (1.0f - 2.0f * std::abs(normHeight - 0.5f)))); // Green peaks in middle
+    *b = static_cast<unsigned char>(255.0f * (1.0f - normHeight));       // Blue decreases with height
+}
+
+void Fluid::plot_waves() {
+    while (true) {
+        std::vector<unsigned char> image_data(m_size * m_size * 3);  // RGB values
+
+        // Generate height-mapped image
+        for (int x = 1; x < m_size - 1; x++) {
+            for (int y = 1; y < m_size - 1; y++) {
+                const int idx = transform_idx(x, y);
+                const float height = m_H[idx];
+
+                // Calculate pixel color
+                int pixel_idx = (x * m_size + y) * 3;
+                mapHeightToColor(height,
+                                 &image_data[pixel_idx],
+                                 &image_data[pixel_idx + 1],
+                                 &image_data[pixel_idx + 2]);
+            }
+        }
+
+        // Render the image
+        plt::imshow(image_data.data(), m_size, m_size, 3);
+        plt::pause(0.05);  // Pause for smooth update
+    }
+}
+

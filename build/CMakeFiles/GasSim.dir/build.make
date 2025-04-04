@@ -140,6 +140,7 @@ GasSim: CMakeFiles/GasSim.dir/src/renderer.cpp.o
 GasSim: CMakeFiles/GasSim.dir/src/fluid.cpp.o
 GasSim: CMakeFiles/GasSim.dir/src/random.cpp.o
 GasSim: CMakeFiles/GasSim.dir/build.make
+GasSim: /usr/lib/x86_64-linux-gnu/libpython3.12.so
 GasSim: CMakeFiles/GasSim.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/perry/fluid/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable GasSim"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/GasSim.dir/link.txt --verbose=$(VERBOSE)
