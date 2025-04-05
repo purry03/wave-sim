@@ -10,8 +10,8 @@
 
 namespace plt = matplotlibcpp;
 
-Fluid::Fluid(const int size,const float dt,const float c,const float s,const int screen_size)
-    : m_size(size), m_dt(dt), m_c(c), m_s(s), m_screen_size(screen_size)
+Fluid::Fluid(const int height, const int width,const float dt,const float c,const float s,const int screen_height, const int screen_width)
+    : m_height(height) , m_width(width), m_dt(dt), m_c(c), m_s(s), m_screen_height(screen_height), m_screen_width(screen_width)
 {
     // Check simulation stability criteria
     if (m_dt * m_c >= m_s) {
@@ -22,10 +22,12 @@ Fluid::Fluid(const int size,const float dt,const float c,const float s,const int
     // Initialize simulation arrays
     initializeArrays();
 
+    std::cout << "Fluid initialized with a grid of size:" << m_height << " x " << m_width << std::endl;
+
     // Generate sierpinski carpet obstacle pattern
-    const int carpet_size = m_size / 2;
-    constexpr int level = 8; // Using direct value instead of pow(2,3) for clarity
-    generate_sierpinski_carpet(m_size / 2 - carpet_size / 2, m_size / 2 - carpet_size / 2, carpet_size, level);
+    const int carpet_size = m_height * 0.9;
+    constexpr int level = pow(2,1); // Using direct value instead of pow(2,3) for clarity
+    generate_sierpinski_carpet(m_width / 2 - carpet_size / 2, m_height / 2 - carpet_size / 2, carpet_size, level);
 
     // Uncomment to start plotting thread
     // m_plot_thread = std::thread(&Fluid::plot_waves, this);
@@ -39,34 +41,30 @@ Fluid::~Fluid() {
 
 void Fluid::initializeArrays() {
     // Resize arrays
-    m_H.resize(m_size * m_size, 0.0f);
-    m_V.resize(m_size * m_size, 0.0f);
-    m_Wet.resize(m_size * m_size, 1.0f);
+    m_H.resize(m_height * m_width, 0.0f);
+    m_V.resize(m_height * m_width, 0.0f);
+    m_Wet.resize(m_height * m_width, 1.0f);
 }
 
 int Fluid::transform_idx(const int x,const int y) const {
-    // Ensure coordinates wrap around the edges
-    return ((x + m_size) % m_size) + m_size * ((y + m_size) % m_size);
+    return y * m_width + x;
 }
 
 float Fluid::get_height(int x, int y, int x0, int y0) const {
-    if (x < 0 || x >= m_size || y < 0 || y >= m_size) {
+    if (x < 0 || x >= m_width || y < 0 || y >= m_height) {
         return 0.0f;  // Return 0 for out-of-bounds
     }
     return m_H[transform_idx(x, y)];
 }
 
-float Fluid::get_wet(int x, int y, int x0, int y0) const {
-    if (x < 0 || x >= m_size || y < 0 || y >= m_size) {
-        return m_Wet[transform_idx(x0, y0)];
-    }
+float Fluid::get_wet(int x, int y) const {
     return m_Wet[transform_idx(x, y)];
 }
 
 float Fluid::acceleration(int x, int y, int x0, int y0) const {
     const float height0 = get_height(x0, y0, x0, y0);
     const float height1 = get_height(x, y, x0, y0);
-    const float wet = get_wet(x, y, x0, y0);
+    const float wet = get_wet(x, y);
     return wet * (height1 - height0);
 }
 
@@ -85,9 +83,9 @@ void Fluid::step(const float halflife) {
 }
 
 void Fluid::updateVelocities(const float damp,const float c_squared_over_s_squared) {
-    for (int x = 0; x < m_size; x++) {
-        for (int y = 0; y < m_size; y++) {
-            if (get_wet(x, y, x, y) > 0.0f) {
+    for (int y = 0; y < m_height; y++) {
+        for (int x = 0; x < m_width; x++) {
+            if (get_wet(x, y) > 0.0f) {
                 const float top = acceleration(x, y + 1, x, y);
                 const float bottom = acceleration(x, y - 1, x, y);
                 const float left = acceleration(x - 1, y, x, y);
@@ -102,9 +100,9 @@ void Fluid::updateVelocities(const float damp,const float c_squared_over_s_squar
 }
 
 void Fluid::applyBoundaryConditions() {
-    for (int x = 0; x < m_size; x++) {
-        for (int y = 0; y < m_size; y++) {
-            if (x == 0 || x == m_size - 1 || y == 0 || y == m_size - 1) {
+    for (int y = 0; y < m_height; y++) {
+        for (int x = 0; x < m_width; x++) {
+            if (x == 0 || x == m_width - 1 || y == 0 || y == m_height - 1) {
                 // Apply zero velocity at boundaries
                 m_V[transform_idx(x, y)] = 0.0f;
             }
@@ -113,9 +111,9 @@ void Fluid::applyBoundaryConditions() {
 }
 
 void Fluid::updateHeights() {
-    for (int x = 0; x < m_size; x++) {
-        for (int y = 0; y < m_size; y++) {
-            if (get_wet(x, y, x, y) > 0.0f) {
+    for (int y = 0; y < m_height; y++) {
+        for (int x = 0; x < m_width; x++) {
+            if (get_wet(x, y) > 0.0f) {
                 const int idx = transform_idx(x, y);
                 m_H[idx] += m_dt * m_V[idx];
             }
@@ -146,22 +144,21 @@ void Fluid::generate_sierpinski_carpet(const int x,const int y,const int size,co
 
 void Fluid::add_velocity(int x, int y) {
     // Convert screen coordinates to simulation coordinates
-    const int scale = m_screen_size / m_size;
-    const int sim_x = x / scale;
-    const int sim_y = y / scale;
+    const int scale_y = m_screen_height / m_height;
+    const int scale_x = m_screen_width / m_width;
+    const int sim_x = x / scale_x;
+    const int sim_y = y / scale_y;
 
     // Add a splash pattern
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
-            if (sim_x + i >= 0 && sim_x + i < m_size &&
-                sim_y + j >= 0 && sim_y + j < m_size) {
+            if (sim_x + i >= 0 && sim_x + i < m_width &&
+                sim_y + j >= 0 && sim_y + j < m_height) {
                 const int r = 1 + i*i + j*j;  // Distance from center
                 m_V[transform_idx(sim_x + i, sim_y + j)] = 20000.0f / r;
             }
         }
     }
-
-    std::cout << "Added velocity at: " << sim_x << "," << sim_y << std::endl;
 }
 
 float Fluid::constrain(const float value,const float min,const float max,const float newMin,const float newMax) {
@@ -170,16 +167,17 @@ float Fluid::constrain(const float value,const float min,const float max,const f
 }
 
 void Fluid::render(const Renderer* renderer) {
-    const int scale = m_screen_size / m_size;
+    const int scale_y = m_screen_height / m_height;
+    const int scale_x = m_screen_width / m_width;
 
-    for (int x = 0; x < m_size; x++) {
-        for (int y = 0; y < m_size; y++) {
+    for (int y = 0; y < m_height; y++) {
+        for (int x = 0; x < m_width; x++) {
             const int idx = transform_idx(x, y);
             const float wet = m_Wet[idx];
             const float height = m_H[idx];
 
             const SDL_Color color = calculateColor(wet, height);
-            renderer->drawRectangle(x * scale, y * scale, scale, scale, color);
+            renderer->drawRectangle(x * scale_x, y * scale_y, scale_x, scale_y, color);
         }
     }
 }
@@ -196,7 +194,6 @@ SDL_Color Fluid::calculateColor(const float wet,const float height) {
         // Water color based on height
         color.r = 45;
         color.g = 35;
-
         // Map height to blue intensity
         const float blue = 128.0f * (height + 1.0f);
         color.b = std::clamp(blue, 0.0f, 255.0f);
@@ -217,16 +214,16 @@ void Fluid::mapHeightToColor(const float height, unsigned char* r, unsigned char
 
 void Fluid::plot_waves() {
     while (true) {
-        std::vector<unsigned char> image_data(m_size * m_size * 3);  // RGB values
+        std::vector<unsigned char> image_data(m_height * m_width * 3);  // RGB values
 
         // Generate height-mapped image
-        for (int x = 1; x < m_size - 1; x++) {
-            for (int y = 1; y < m_size - 1; y++) {
+        for (int x = 1; x < m_height - 1; x++) {
+            for (int y = 1; y < m_width - 1; y++) {
                 const int idx = transform_idx(x, y);
                 const float height = m_H[idx];
 
                 // Calculate pixel color
-                int pixel_idx = (x * m_size + y) * 3;
+                int pixel_idx = (x * m_height + y) * 3;
                 mapHeightToColor(height,
                                  &image_data[pixel_idx],
                                  &image_data[pixel_idx + 1],
@@ -235,7 +232,7 @@ void Fluid::plot_waves() {
         }
 
         // Render the image
-        plt::imshow(image_data.data(), m_size, m_size, 3);
+        plt::imshow(image_data.data(), m_height, m_width, 3);
         plt::pause(0.05);  // Pause for smooth update
     }
 }

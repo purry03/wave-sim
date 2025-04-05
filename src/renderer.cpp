@@ -76,7 +76,7 @@ void Renderer::createWindow()
     m_window = SDL_CreateWindow(
         m_title,
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        m_height, m_width,
+        m_width, m_height,
         SDL_WINDOW_SHOWN
     );
 

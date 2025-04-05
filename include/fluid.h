@@ -15,7 +15,7 @@ public:
     * @param s Wave width
     * @param screen_size 2D Size of the screen
     */
-    Fluid(int size, float dt, float c, float s, int screen_size);
+    Fluid(int height, int width, float dt, float c, float s, int screen_height, int screen_width);
     ~Fluid();
 
     /**
@@ -48,11 +48,13 @@ public:
 
 private:
     // Simulation parameters
-    int m_size;         // Grid size
+    int m_height;         // Grid height
+    int m_width;        // Grid width
     float m_dt;         // Time step
     float m_c;          // Wave speed
     float m_s;          // Grid spacing
-    int m_screen_size;  // Rendering screen size
+    int m_screen_width;  // Rendering screen width
+    int m_screen_height;  // Rendering screen height
 
     // Simulation state
     std::vector<float> m_H;    // Height
@@ -65,7 +67,7 @@ private:
     void initializeArrays();
     int transform_idx(int x, int y) const;
     float get_height(int x, int y, int x0, int y0) const;
-    float get_wet(int x, int y, int x0, int y0) const;
+    float get_wet(int x, int y) const;
     float acceleration(int x, int y, int x0, int y0) const;
     float constrain(float value, float min, float max, float newMin, float newMax);
 

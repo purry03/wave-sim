@@ -1,8 +1,7 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#include <SDL2/SDL.h>
-#include <string>
+#include "SDL/SDL.h"
 
 class Renderer {
 public:

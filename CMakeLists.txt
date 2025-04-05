@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find packages
-find_package(SDL2 REQUIRED)
+#find_package(SDL2 REQUIRED)
 find_package(PythonLibs 3.0 REQUIRED)
 
 # Include directories
@@ -31,4 +31,5 @@ add_executable(wavesim ${SOURCES})
 
 # Link SDL2
 target_link_libraries(wavesim SDL2)
+#target_link_libraries(wavesim ${CMAKE_SOURCE_DIR}/SDL2.dll)
 target_link_libraries(wavesim ${PYTHON_LIBRARIES})
