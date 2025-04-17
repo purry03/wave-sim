@@ -1,6 +1,4 @@
 #include "../include/renderer.h"
-#include "../include/fluid.h"
-#include <cmath>
 #include <iostream>
 #include <stdexcept>
 

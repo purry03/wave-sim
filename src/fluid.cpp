@@ -25,8 +25,8 @@ Fluid::Fluid(const int height, const int width,const float dt,const float c,cons
     std::cout << "Fluid initialized with a grid of size:" << m_height << " x " << m_width << std::endl;
 
     // Generate sierpinski carpet obstacle pattern
-    const int carpet_size = m_height * 0.9;
-    constexpr int level = pow(2,1); // Using direct value instead of pow(2,3) for clarity
+    const int carpet_size = m_height * 0.95;
+    constexpr int level = 3; // Using direct value instead of pow(2,3) for clarity
     generate_sierpinski_carpet(m_width / 2 - carpet_size / 2, m_height / 2 - carpet_size / 2, carpet_size, level);
 
     // Uncomment to start plotting thread
@@ -90,7 +90,6 @@ void Fluid::updateVelocities(const float damp,const float c_squared_over_s_squar
                 const float bottom = acceleration(x, y - 1, x, y);
                 const float left = acceleration(x - 1, y, x, y);
                 const float right = acceleration(x + 1, y, x, y);
-
                 const float acc = c_squared_over_s_squared * (top + bottom + left + right);
                 const int idx = transform_idx(x, y);
                 m_V[idx] = damp * m_V[idx] + m_dt * acc;

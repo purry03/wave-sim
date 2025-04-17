@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find packages
-#find_package(SDL2 REQUIRED)
+find_package(SDL2 REQUIRED)
 find_package(PythonLibs 3.0 REQUIRED)
 
 # Include directories

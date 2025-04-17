@@ -1,11 +1,5 @@
 #include "../include/renderer.h"
 #include "../include/fluid.h"
-#include "../include/random.h"
-// #include "../include/input.h"
-
-#include <cmath>
-#include <vector>
-#include <ctime>
 
 #define SCREEN_WIDTH 1000
 #define SCREEN_HEIGHT 600
@@ -47,7 +41,7 @@ int main()
     auto renderer = Renderer("Fluid Sim", SCREEN_HEIGHT, SCREEN_WIDTH, 240);
     renderer.initialize();
 
-    constexpr int downsample = 5;
+    constexpr int downsample = 4;
     auto fluid = Fluid(SCREEN_HEIGHT/downsample , SCREEN_WIDTH/downsample, 1.0f / 48000.0f,2.0f, 0.001f, SCREEN_HEIGHT, SCREEN_WIDTH);
 
     while(renderer.isLive())
